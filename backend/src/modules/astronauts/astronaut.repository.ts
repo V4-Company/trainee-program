@@ -1,6 +1,7 @@
 import { pool } from "../../database/client.js";
-import type { AstronautRow } from "../../database/types.js";
 import { resolvePagination, totalPages } from "../../shared/pagination.js";
+
+import type { AstronautRow } from "../../database/types.js";
 import type { CreateAstronautData, FindAstronautsParams, UpdateAstronautData } from "./astronaut.schema.js";
 
 export interface AstronautsResult {
