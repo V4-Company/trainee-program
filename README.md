@@ -2,15 +2,11 @@
 
 ## Contexto
 
-Bem-vindo ao painel da colonia em Marte. Este projeto representa o sistema base do **Mars Mission Control**, utilizado no dojo de estagio para evolucao de funcionalidades durante os desafios.
+Bem-vindo ao painel de controle da colônia em Marte. Este projeto representa o sistema base do **Mars Mission Control**, utilizado no dojo de estágio para evolução de funcionalidades durante os desafios.
 
-A entidade central inicial e `astronauts`, com suporte a:
+O projeto já conta com três páginas no frontend — **Missões**, **Astronautas** e **Suprimentos** — mas apenas o módulo de **Astronautas** está conectado à API. As páginas de Missões e Suprimentos operam com dados locais e servem como ponto de partida para os desafios.
 
-- Listagem paginada
-- Busca por nome
-- Cadastro de novos astronautas
-
-## Pre-requisitos
+## Pré-requisitos
 
 - Docker e Docker Compose
 - Node.js 22+ (apenas se quiser rodar fora do Docker)
@@ -18,62 +14,121 @@ A entidade central inicial e `astronauts`, com suporte a:
 
 ## Como subir o ambiente
 
-No diretorio raiz do projeto:
+No diretório raiz do projeto:
 
 ```bash
 docker-compose up --build
 ```
 
-Servicos disponiveis:
+Serviços disponíveis:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:3333`
-- Banco PostgreSQL: `localhost:5432`
+- **Frontend:** `http://localhost:5173`
+- **Backend:** `http://localhost:3333`
+- **Banco PostgreSQL:** `localhost:5432`
+
+Credenciais do banco:
+
+| Campo  | Valor          |
+| ------ | -------------- |
+| Host   | localhost      |
+| Porta  | 5432           |
+| Banco  | mars           |
+| Usuário| mars_user      |
+| Senha  | mars_password  |
+
+## Stack
+
+### Backend
+
+- **Fastify** — framework HTTP
+- **pg (node-postgres)** — driver PostgreSQL
+- **Zod** — validação de schemas
+- **TypeScript**
+
+### Frontend
+
+- **React 19** com **Vite**
+- **React Router** — roteamento por páginas
+- **TanStack React Query** — gerenciamento de requisições
+- **Tailwind CSS** — estilização
+- **Lucide React** — ícones
+- **TypeScript**
+
+### Infra
+
+- **Docker Compose** — orquestração dos serviços (db, backend, frontend)
 
 ## Estrutura de pastas
 
 ```text
-mars-mission/
+trainee-program/
 ├── docker-compose.yml
 ├── README.md
+├── SPEC.md
 ├── database/
-│   └── init.sql                  # Cria e popula a tabela astronauts
+│   └── init.sql                           # Cria e popula a tabela astronauts
 ├── backend/
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── .env.example
 │   └── src/
-│       ├── server.ts
+│       ├── server.ts                      # Entry point — registra plugins e rotas
 │       ├── database/
-│       │   ├── client.ts
-│       │   └── types.ts
+│       │   ├── client.ts                  # Pool de conexão (pg)
+│       │   └── types.ts                   # Tipos do schema do banco
 │       ├── modules/
 │       │   └── astronauts/
-│       │       ├── astronaut.repository.ts
-│       │       ├── astronaut.routes.ts
-│       │       └── astronaut.schema.ts
+│       │       ├── astronaut.repository.ts  # Queries SQL
+│       │       ├── astronaut.routes.ts      # Rotas Fastify
+│       │       └── astronaut.schema.ts      # Schemas Zod (validação)
 │       └── shared/
-│           └── pagination.ts
+│           ├── pagination.ts              # Helper de paginação reutilizável
+│           └── utils.ts                   # Formatação de respostas e erros
 └── frontend/
     ├── Dockerfile
     ├── package.json
     ├── index.html
-    ├── tailwind.config.js
     └── src/
         ├── main.tsx
-        ├── App.tsx
+        ├── App.tsx                        # Rotas (React Router)
         ├── api/
-        │   └── astronauts.ts
+        │   └── astronauts.ts              # Funções de fetch para a API
         ├── components/
-        │   ├── AstronautList.tsx
-        │   ├── AstronautForm.tsx
-        │   └── Pagination.tsx
+        │   ├── Pagination.tsx
+        │   ├── SidebarButton.tsx
+        │   └── ui/                        # Componentes base (button, card, input, etc.)
+        ├── data/
+        │   └── fake-data.ts               # Dados locais de missões e suprimentos
+        ├── layouts/
+        │   └── AppLayout.tsx              # Layout com sidebar de navegação
+        ├── lib/
+        │   ├── query-client.ts            # Instância do React Query
+        │   └── utils.ts                   # Utilitários (cn, etc.)
+        ├── pages/
+        │   ├── astronauts/
+        │   │   ├── AstronautsPage.tsx
+        │   │   └── components/
+        │   │       ├── AstronautForm.tsx
+        │   │       ├── AstronautSearch.tsx
+        │   │       └── AstronautsList.tsx
+        │   ├── missions/
+        │   │   ├── MissionsPage.tsx        # Dados locais (sem API)
+        │   │   └── components/
+        │   │       ├── MissionForm.tsx
+        │   │       └── MissionsList.tsx
+        │   └── supplies/
+        │       ├── SuppliesPage.tsx        # Dados locais (sem API)
+        │       └── components/
+        │           ├── SuppliesForm.tsx
+        │           └── SuppliesList.tsx
         └── types/
-            └── astronaut.ts
+            ├── astronaut.ts
+            ├── missions.ts
+            └── supplies.ts
 ```
 
-## Schema de referencia - tabela `astronauts`
+## Schema de referência — tabela `astronauts`
 
 ```sql
 CREATE TABLE astronauts (
@@ -88,17 +143,18 @@ CREATE TABLE astronauts (
 );
 ```
 
-Observacoes:
+Observações:
 
 - `status` esperado: `active` ou `inactive`
-- `deleted_at` e utilizado para soft delete
-- Itens com `deleted_at IS NOT NULL` nao devem aparecer nas listagens
+- `deleted_at` é utilizado para soft delete
+- Itens com `deleted_at IS NOT NULL` não devem aparecer nas listagens
+- O seed inicial insere 20 astronautas fictícios para testes
 
 ## Endpoints existentes
 
 ### `GET /health`
 
-Retorna status basico da API.
+Retorna status básico da API.
 
 Resposta:
 
@@ -108,17 +164,43 @@ Resposta:
 
 ### `GET /astronauts`
 
-Lista astronautas ativos com paginacao e busca por nome.
+Lista astronautas ativos com paginação e busca por nome.
 
 Query params:
 
-- `search` (opcional): busca case-insensitive por nome
-- `page` (opcional, default `1`)
-- `limit` (opcional, default `10`, max `50`)
+| Parâmetro | Tipo   | Obrigatório | Descrição                                         |
+| --------- | ------ | ----------- | ------------------------------------------------- |
+| `search`  | string | não         | Filtra por nome (case-insensitive, busca parcial)  |
+| `page`    | number | não         | Página atual. Default: `1`                         |
+| `limit`   | number | não         | Itens por página. Default: `10`. Máximo: `50`      |
+
+Resposta `200`:
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Valentina Cruz",
+      "role": "Commander",
+      "nationality": "Brazilian",
+      "status": "active",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2025-01-01T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "total": 20,
+    "page": 1,
+    "limit": 10,
+    "totalPages": 2
+  }
+}
+```
 
 ### `POST /astronauts`
 
-Cria novo astronauta com `status` definido como `active` pelo backend.
+Cria um novo astronauta. O campo `status` é definido como `active` pelo backend.
 
 Body:
 
@@ -130,6 +212,60 @@ Body:
 }
 ```
 
-## Sua missao
+Validações (via Zod):
+
+- `name`: obrigatório, string, mínimo 2 caracteres
+- `role`: obrigatório, string, mínimo 1 caractere
+- `nationality`: obrigatório, string, mínimo 1 caractere
+
+Resposta `201`: retorna o astronauta criado.
+
+Resposta `400` (erro de validação):
+
+```json
+{
+  "error": "Validation error",
+  "details": ["String must contain at least 2 character(s)"]
+}
+```
+
+### `PUT /astronauts/:id`
+
+Atualiza um astronauta existente. Todos os campos são opcionais, mas pelo menos um deve ser enviado.
+
+Body (todos opcionais):
+
+```json
+{
+  "name": "Valentina Cruz",
+  "role": "Engenheiro de Voo",
+  "nationality": "Brazilian",
+  "status": "inactive"
+}
+```
+
+- `status` aceita apenas `"active"` ou `"inactive"`
+- Retorna `200` com o astronauta atualizado
+- Retorna `404` se o astronauta não existir ou estiver deletado
+
+### `DELETE /astronauts/:id`
+
+Realiza soft delete (preenche `deleted_at`). O registro não é removido do banco.
+
+- Retorna `204 No Content` em caso de sucesso
+- Retorna `404` se o astronauta não existir ou já estiver deletado
+
+## Páginas do frontend
+
+| Rota            | Página       | Dados              |
+| --------------- | ------------ | ------------------ |
+| `/missions`     | Missões      | Dados locais (fake)|
+| `/astronautas`  | Astronautas  | API REST           |
+| `/suprimentos`  | Suprimentos  | Dados locais (fake)|
+
+- A página de **Astronautas** é a única conectada ao backend, com CRUD completo (criar, listar, editar, deletar)
+- As páginas de **Missões** e **Suprimentos** operam com dados em memória e servem como base para evolução nos desafios
+
+## Sua missão
 
 <!-- A ser preenchido pelo sensei no dia do dojo -->
