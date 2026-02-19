@@ -7,7 +7,7 @@ const app = Fastify({ logger: true });
 const port = Number(process.env.PORT ?? 3333);
 
 await app.register(cors, {
-  origin: "http://localhost:5173",
+  origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 });
 
