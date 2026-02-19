@@ -5,8 +5,8 @@ API REST para gerenciamento de astronautas da missão Mars Mission Control.
 ## Tecnologias
 
 - **Fastify** — framework HTTP
-- **Kysely** — query builder TypeScript
-- **PostgreSQL** — banco de dados
+- **pg (node-postgres)** — driver PostgreSQL (raw SQL)
+- **Zod** — validação de schemas
 - **TypeScript** — linguagem
 
 ## Configuração
@@ -17,10 +17,10 @@ API REST para gerenciamento de astronautas da missão Mars Mission Control.
 pnpm install
 ```
 
-2. Crie um arquivo `.env` na raiz do backend:
+2. Crie um arquivo `.env` na raiz do backend (veja `.env.example`):
 
 ```
-DATABASE_URL=postgresql://usuario:senha@localhost:5432/mars_mission
+DATABASE_URL=postgresql://mars_user:mars_password@localhost:5432/mars
 PORT=3333
 ```
 
@@ -31,6 +31,24 @@ pnpm dev
 ```
 
 O servidor estará disponível em `http://localhost:3333`.
+
+## Estrutura
+
+```text
+src/
+├── server.ts                            # Entry point — registra plugins e rotas
+├── database/
+│   ├── client.ts                        # Pool de conexão (pg)
+│   └── types.ts                         # Tipos do schema do banco (AstronautRow)
+├── modules/
+│   └── astronauts/
+│       ├── astronaut.repository.ts      # Queries SQL (raw)
+│       ├── astronaut.routes.ts          # Rotas Fastify
+│       └── astronaut.schema.ts          # Schemas Zod (validação)
+└── shared/
+    ├── pagination.ts                    # Helper de paginação reutilizável
+    └── utils.ts                         # formatRow e formatZodError
+```
 
 ## Endpoints
 
@@ -78,21 +96,11 @@ curl -X POST http://localhost:3333/astronauts \
 Todos os campos são opcionais (envie apenas o que deseja alterar). O campo `status` aceita `"active"` ou `"inactive"`.
 
 ```bash
-# atualizar role e status (substitua 1 pelo id real)
 curl -X PUT http://localhost:3333/astronauts/1 \
   -H "Content-Type: application/json" \
   -d '{
     "role": "Engenheiro de Voo",
     "status": "inactive"
-  }'
-```
-
-```bash
-# atualizar apenas o nome
-curl -X PUT http://localhost:3333/astronauts/1 \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Marcos César Pontes"
   }'
 ```
 
