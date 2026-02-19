@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { createAstronaut, findAstronauts, softDeleteAstronaut, updateAstronaut } from "./astronaut.repository.js";
+import { AstronautRow } from "../../database/types.js";
 import {
   parseAstronautId,
   parseCreateAstronautBody,
@@ -8,21 +9,9 @@ import {
   type AstronautResponse
 } from "./astronaut.schema.js";
 
-function mapAstronaut(row: {
-  id: number;
-  name: string;
-  role: string;
-  nationality: string;
-  status: "active" | "inactive";
-  created_at: Date;
-  updated_at: Date;
-}): AstronautResponse {
+function mapAstronaut(row: AstronautRow): AstronautResponse {
   return {
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    nationality: row.nationality,
-    status: row.status,
+    ...row,
     created_at: row.created_at.toISOString(),
     updated_at: row.updated_at.toISOString()
   };
@@ -37,8 +26,6 @@ export async function astronautRoutes(app: FastifyInstance): Promise<void> {
       data: result.data.map((row) =>
         mapAstronaut({
           ...row,
-          created_at: new Date(row.created_at),
-          updated_at: new Date(row.updated_at)
         })
       ),
       pagination: result.pagination
@@ -60,8 +47,6 @@ export async function astronautRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(201).send(
       mapAstronaut({
         ...created,
-        created_at: new Date(created.created_at),
-        updated_at: new Date(created.updated_at)
       })
     );
   });
@@ -91,8 +76,6 @@ export async function astronautRoutes(app: FastifyInstance): Promise<void> {
     return reply.status(200).send(
       mapAstronaut({
         ...updated,
-        created_at: new Date(updated.created_at),
-        updated_at: new Date(updated.updated_at)
       })
     );
   });
