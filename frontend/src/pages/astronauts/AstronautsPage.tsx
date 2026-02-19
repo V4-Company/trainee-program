@@ -1,140 +1,400 @@
-import { Pencil, Search, Trash2 } from "lucide-react";
-import { Badge } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
-import type { AstronautsPageProps } from "../types";
+import { type FormEvent, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createAstronaut, deleteAstronaut, fetchAstronauts, updateAstronaut } from "../../api/astronauts";
+import { Card, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { astronautNationalities, astronautRoles } from "../../data/fake-data";
+import type { Astronaut, AstronautFormState } from "../../types/astronaut";
+import { AstronautForm } from "./components/AstronautForm";
+import { AstronautsList } from "./components/AstronautsList";
+import { AstronautSearch } from "./components/AstronautSearch";
 
-export function AstronautsPage({
-  astronautError,
-  isLoading,
-  isEditing,
-  form,
-  search,
-  onSearchChange,
-  rows,
-  roles,
-  nationalities,
-  onSubmit,
-  onChangeForm,
-  onEdit,
-  onDelete,
-  onCancelEdit
-}: AstronautsPageProps) {
+const INITIAL_FORM: AstronautFormState = {
+  name: "",
+  role: astronautRoles[0],
+  nationality: astronautNationalities[0]
+};
+
+export function AstronautsPage() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [formError, setFormError] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<AstronautFormState>(INITIAL_FORM);
+
+  const astronautsQuery = useQuery({
+    queryKey: ["astronauts", submittedSearch],
+    queryFn: () => fetchAstronauts({ page: 1, limit: 50, search: submittedSearch || undefined })
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createAstronaut,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AstronautFormState }) => updateAstronaut(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAstronaut,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittedSearch(search.trim());
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError("");
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({ id: editingId, data: form });
+      } else {
+        await createMutation.mutateAsync({
+          name: form.name,
+          role: form.role,
+          nationality: form.nationality
+        });
+      }
+      setForm(INITIAL_FORM);
+      setEditingId(null);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Falha ao salvar astronauta.");
+    }
+  }
+
+  function onEdit(item: Astronaut) {
+    setEditingId(item.id);
+    setForm({
+      name: item.name,
+      role: item.role,
+      nationality: item.nationality
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingId(null);
+    setForm(INITIAL_FORM);
+  }
+
+  async function onDelete(id: number) {
+    setFormError("");
+    try {
+      await deleteMutation.mutateAsync(id);
+      if (editingId === id) {
+        onCancelEdit();
+      }
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Falha ao deletar astronauta.");
+    }
+  }
+
+  const rows: Astronaut[] = astronautsQuery.data?.data ?? [];
+  const isLoading = astronautsQuery.isPending;
+  const astronautError = formError || (astronautsQuery.error instanceof Error ? astronautsQuery.error.message : "");
+
   return (
     <div className="space-y-5">
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Equipe de astronautas</CardTitle>
-          <CardDescription>Criar, atualizar e deletar (soft delete) usando API real do backend.</CardDescription>
+          <CardDescription>Gerencie a equipe de astronautas da missao.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={onSubmit} className="grid gap-2 md:grid-cols-4">
-            <Input
-              placeholder="Nome"
-              value={form.name}
-              onChange={(event) => onChangeForm((current) => ({ ...current, name: event.target.value }))}
-            />
-            <select
-              value={form.role}
-              onChange={(event) => onChangeForm((current) => ({ ...current, role: event.target.value }))}
-              className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-            >
-              {roles.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-            <select
-              value={form.nationality}
-              onChange={(event) => onChangeForm((current) => ({ ...current, nationality: event.target.value }))}
-              className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-            >
-              {nationalities.map((nationality) => (
-                <option key={nationality} value={nationality}>
-                  {nationality}
-                </option>
-              ))}
-            </select>
-            <select
-              value={form.status}
-              onChange={(event) => onChangeForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))}
-              className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-            >
-              <option value="active">active</option>
-              <option value="inactive">inactive</option>
-            </select>
 
-            <div className="md:col-span-4 flex gap-2">
-              <Button type="submit">{isEditing ? "Atualizar astronauta" : "Adicionar astronauta"}</Button>
-              {isEditing ? (
-                <Button type="button" variant="secondary" onClick={onCancelEdit}>
-                  Cancelar edicao
-                </Button>
-              ) : null}
-            </div>
-          </form>
+        <AstronautForm
+          form={form}
+          roles={astronautRoles}
+          nationalities={astronautNationalities}
+          isEditing={Boolean(editingId)}
+          onSubmit={onSubmit}
+          onChangeForm={setForm}
+          onCancelEdit={onCancelEdit}
+        />
 
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Buscar astronauta..."
-              className="pl-9"
-            />
-          </div>
-          {astronautError ? <p className="text-sm text-red-300">{astronautError}</p> : null}
+        <div className="px-6 py-4">
+          <AstronautSearch search={search} onSearchChange={setSearch} onSearchSubmit={onSearchSubmit} />
+          {astronautError ? <p className="mt-2 text-sm text-red-300">{astronautError}</p> : null}
+        </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Funcao</TableHead>
-                <TableHead>Nacionalidade</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Acoes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={5}>Carregando astronautas...</TableCell>
-                </TableRow>
-              ) : rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5}>Nenhum astronauta encontrado.</TableCell>
-                </TableRow>
-              ) : (
-                rows.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.role}</TableCell>
-                    <TableCell>{item.nationality}</TableCell>
-                    <TableCell>
-                      <Badge variant={item.status === "active" ? "default" : "secondary"}>{item.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => onEdit(item)}>
-                          <Pencil className="mr-1 h-3.5 w-3.5" />
-                          Editar
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => void onDelete(item.id)}>
-                          <Trash2 className="mr-1 h-3.5 w-3.5" />
-                          Deletar
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
+        <AstronautsList isLoading={isLoading} rows={rows} onEdit={onEdit} onDelete={onDelete} />
       </Card>
     </div>
   );
 }
+/* import { type FormEvent, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createAstronaut, deleteAstronaut, fetchAstronauts, updateAstronaut } from "../../api/astronauts";
+import { Card, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import { astronautNationalities, astronautRoles } from "../../data/fake-data";
+import type { Astronaut, AstronautFormState } from "../../types/astronaut";
+import { AstronautForm } from "./components/AstronautForm";
+import { AstronautsList } from "./components/AstronautsList";
+import { AstronautSearch } from "./components/AstronautSearch";
+
+const INITIAL_FORM: AstronautFormState = {
+  name: "",
+  role: astronautRoles[0],
+  nationality: astronautNationalities[0]
+};
+
+export function AstronautsPage() {
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [formError, setFormError] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<AstronautFormState>(INITIAL_FORM);
+
+  const astronautsQuery = useQuery({
+    queryKey: ["astronauts", submittedSearch],
+    queryFn: () => fetchAstronauts({ page: 1, limit: 50, search: submittedSearch || undefined })
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createAstronaut,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: AstronautFormState }) => updateAstronaut(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAstronaut,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["astronauts"] });
+    }
+  });
+
+  function onSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmittedSearch(search.trim());
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFormError("");
+    try {
+      if (editingId) {
+        await updateMutation.mutateAsync({ id: editingId, data: form });
+      } else {
+        await createMutation.mutateAsync({
+          name: form.name,
+          role: form.role,
+          nationality: form.nationality
+        });
+      }
+      setForm(INITIAL_FORM);
+      setEditingId(null);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Falha ao salvar astronauta.");
+    }
+  }
+
+  function onEdit(item: Astronaut) {
+    setEditingId(item.id);
+    setForm({
+      name: item.name,
+      role: item.role,
+      nationality: item.nationality
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingId(null);
+    setForm(INITIAL_FORM);
+  }
+
+  async function onDelete(id: number) {
+    setFormError("");
+    try {
+      await deleteMutation.mutateAsync(id);
+      if (editingId === id) {
+        onCancelEdit();
+      }
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : "Falha ao deletar astronauta.");
+    }
+  }
+
+  const rows: Astronaut[] = astronautsQuery.data?.data ?? [];
+  const isLoading = astronautsQuery.isPending;
+  const astronautError = formError || (astronautsQuery.error instanceof Error ? astronautsQuery.error.message : "");
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Equipe de astronautas</CardTitle>
+          <CardDescription>Gerencie a equipe de astronautas da missao.</CardDescription>
+        </CardHeader>
+
+        <AstronautForm
+          form={form}
+          roles={astronautRoles}
+          nationalities={astronautNationalities}
+          isEditing={Boolean(editingId)}
+          onSubmit={onSubmit}
+          onChangeForm={setForm}
+          onCancelEdit={onCancelEdit}
+        />
+
+        <div className="px-6 py-4">
+          <AstronautSearch search={search} onSearchChange={setSearch} onSearchSubmit={onSearchSubmit} />
+          {astronautError ? <p className="mt-2 text-sm text-red-300">{astronautError}</p> : null}
+        </div>
+
+        <AstronautsList isLoading={isLoading} rows={rows} onEdit={onEdit} onDelete={onDelete} />
+      </Card>
+    </div>
+  );
+}
+*/
+/*
+import { type FormEvent, useEffect, useState } from "react";
+import { createAstronaut, deleteAstronaut, fetchAstronauts, softDeleteAstronaut, updateAstronaut } from "../../api/astronauts";
+import { Card, CardHeader, CardTitle, CardDescription } from "../../components/ui/card";
+import { astronautNationalities, astronautRoles } from "../../data/fake-data";
+import type { Astronaut, AstronautFormState } from "../../types/astronaut";
+import { AstronautForm } from "./components/AstronautForm";
+import { AstronautsList } from "./components/AstronautsList";
+import { AstronautSearch } from "./components/AstronautSearch";
+
+const INITIAL_FORM: AstronautFormState = {
+  name: "",
+  role: astronautRoles[0],
+  nationality: astronautNationalities[0],
+};
+
+export function AstronautsPage() {
+  const [rows, setRows] = useState<Astronaut[]>([]);
+  const [search, setSearch] = useState("");
+  const [submittedSearch, setSubmittedSearch] = useState("");
+  const [astronautError, setAstronautError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<AstronautFormState>(INITIAL_FORM);
+
+  useEffect(() => {
+    async function loadAstronauts() {
+      setIsLoading(true);
+      setAstronautError("");
+      try {
+        const response = await fetchAstronauts({ page: 1, limit: 50, search: submittedSearch || undefined });
+        setRows(response.data);
+      } catch (error) {
+        setAstronautError(error instanceof Error ? error.message : "Falha ao buscar astronautas.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadAstronauts();
+  }, [submittedSearch]);
+
+  async function refreshAstronauts() {
+    const response = await fetchAstronauts({ page: 1, limit: 50, search: submittedSearch || undefined });
+    setRows(response.data);
+  }
+
+  function onSearchSubmit(event: InputEvent) {
+    event.preventDefault();
+    setSubmittedSearch(search.trim());
+  }
+
+  async function onSubmit(event: InputEvent) {
+    event.preventDefault();
+    setAstronautError("");
+    try {
+      if (editingId) {
+        await updateAstronaut(editingId, form);
+      } else {
+        await createAstronaut({
+          name: form.name,
+          role: form.role,
+          nationality: form.nationality
+        });
+      }
+      setForm(INITIAL_FORM);
+      setEditingId(null);
+      await refreshAstronauts();
+    } catch (error) {
+      setAstronautError(error instanceof Error ? error.message : "Falha ao salvar astronauta.");
+    }
+  }
+
+  function onEdit(item: Astronaut) {
+    setEditingId(item.id);
+    setForm({
+      name: item.name,
+      role: item.role,
+      nationality: item.nationality,
+    });
+  }
+
+  function onCancelEdit() {
+    setEditingId(null);
+    setForm(INITIAL_FORM);
+  }
+
+  async function onDelete(id: number) {
+    setAstronautError("");
+
+    try {
+      await deleteAstronaut(id);
+
+      setRows((current) => current.filter((item) => item.id !== id));
+
+      if (editingId === id) {
+        onCancelEdit();
+      }
+
+    } catch (error) {
+      setAstronautError(error instanceof Error ? error.message : "Falha ao deletar astronauta.");
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Equipe de astronautas</CardTitle>
+          <CardDescription>Gerencie a equipe de astronautas da missao.</CardDescription>
+        </CardHeader>
+
+        <AstronautForm
+          form={form}
+          roles={astronautRoles}
+          nationalities={astronautNationalities}
+          isEditing={Boolean(editingId)}
+          onSubmit={onSubmit}
+          onChangeForm={setForm}
+          onCancelEdit={onCancelEdit}
+        />
+
+        <div className="px-6 py-4">
+          <AstronautSearch search={search} onSearchChange={setSearch} onSearchSubmit={onSearchSubmit} />
+          {astronautError ? <p className="mt-2 text-sm text-red-300">{astronautError}</p> : null}
+        </div>
+
+        <AstronautsList isLoading={isLoading} rows={rows} onEdit={onEdit} onDelete={onDelete} />
+      </Card>
+    </div>
+  );
+}
+*/

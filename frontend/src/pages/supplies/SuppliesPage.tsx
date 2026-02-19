@@ -1,88 +1,67 @@
-import { Trash2 } from "lucide-react";
-import { Badge } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
-import type { SuppliesPageProps } from "../types";
+import { type FormEvent, useState } from "react";
+import { supplyCategories, supplies as initialSupplies } from "../../data/fake-data";
+import type { Supply, SupplyFormState } from "../../types/supplies";
+import { SuppliesForm } from "./components/SuppliesForm";
+import { SuppliesList } from "./components/SuppliesList";
 
-export function SuppliesPage({
-  rows,
-  form,
-  supplyError,
-  categories,
-  onChangeForm,
-  onCreateSupply,
-  onDeleteSupply
-}: SuppliesPageProps) {
+const INITIAL_FORM: SupplyFormState = {
+  item: "",
+  categoria: supplyCategories[0],
+  estoque: "50"
+};
+
+export function SuppliesPage() {
+  const [rows, setRows] = useState<Supply[]>(initialSupplies);
+  const [form, setForm] = useState<SupplyFormState>(INITIAL_FORM);
+  const [supplyError, setSupplyError] = useState("");
+
+  async function fakeCreateSupply() {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+
+  async function fakeDeleteSupply() {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+  }
+
+  async function onCreateSupply(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSupplyError("");
+    const estoque = Number(form.estoque);
+
+    if (!form.item.trim() || !form.categoria.trim() || !Number.isFinite(estoque)) {
+      setSupplyError("Preencha item, categoria e estoque validos.");
+      return;
+    }
+
+    await fakeCreateSupply();
+    setRows((current) => [
+      {
+        id: `SUP-${Math.floor(Math.random() * 900 + 100)}`,
+        item: form.item.trim(),
+        categoria: form.categoria.trim(),
+        estoque: Math.max(0, Math.min(100, estoque)),
+        unidade: "%"
+      },
+      ...current
+    ]);
+    setForm(INITIAL_FORM);
+  }
+
+  async function onDeleteSupply(id: string) {
+    await fakeDeleteSupply();
+    setRows((current) => current.filter((item) => item.id !== id));
+  }
+
   return (
     <div className="space-y-5">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Cadastrar suprimento (fake)</CardTitle>
-          <CardDescription>Fluxo frontend pronto, sem chamada para API.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onCreateSupply} className="grid gap-2 md:grid-cols-4">
-            <Input
-              placeholder="Item"
-              value={form.item}
-              onChange={(event) => onChangeForm((current) => ({ ...current, item: event.target.value }))}
-            />
-            <select
-              value={form.categoria}
-              onChange={(event) => onChangeForm((current) => ({ ...current, categoria: event.target.value }))}
-              className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-            <Input
-              placeholder="Estoque (%)"
-              type="number"
-              value={form.estoque}
-              onChange={(event) => onChangeForm((current) => ({ ...current, estoque: event.target.value }))}
-            />
-            <Button type="submit">Adicionar suprimento</Button>
-          </form>
-          {supplyError ? <p className="mt-2 text-sm text-red-300">{supplyError}</p> : null}
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {rows.map((item) => (
-          <Card key={item.id}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{item.item}</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{item.id}</Badge>
-                  <Button size="sm" variant="outline" onClick={() => void onDeleteSupply(item.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-              <CardDescription>{item.categoria}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Nivel de estoque</span>
-                  <span className="font-semibold text-red-300">
-                    {item.estoque}
-                    {item.unidade}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-secondary">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${item.estoque}%` }} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <SuppliesForm
+        form={form}
+        supplyError={supplyError}
+        categories={supplyCategories}
+        onChangeForm={setForm}
+        onCreateSupply={onCreateSupply}
+      />
+      <SuppliesList rows={rows} onDeleteSupply={onDeleteSupply} />
     </div>
   );
 }

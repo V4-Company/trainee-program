@@ -6,45 +6,45 @@ export const missions = [
 ];
 
 export const astronautRoles = [
-  "Commander",
-  "Pilot",
-  "Engineer",
-  "Scientist",
-  "Biologist",
-  "Medic",
-  "Geologist",
-  "Technician",
-  "Communications",
-  "Navigator"
+  "Comandante",
+  "Piloto",
+  "Engenheiro",
+  "Cientista",
+  "Biólogo",
+  "Médico",
+  "Geólogo",
+  "Técnico",
+  "Comunicações",
+  "Navegador"
 ];
 
 export const astronautNationalities = [
-  "Brazilian",
-  "American",
-  "Japanese",
-  "Indian",
-  "Irish",
+  "Brasileiro",
+  "Americano",
+  "Japonês",
+  "Indiano",
+  "Irlandês",
   "German",
-  "French",
+  "Francês",
   "Portuguese",
-  "South African",
-  "Australian"
+  "Sul-Africano",
+  "Australiano"
 ];
 
 export const supplyCategories = [
-  "Suporte de Vida",
+  "Suprimento de Vida",
   "Propulsao",
-  "Saude",
+  "Saúde",
   "Alimentos",
-  "Manutencao",
-  "Comunicacao",
+  "Manutenção",
+  "Comunicação",
   "Energia"
 ];
 
 export const supplies = [
-  { id: "SUP-100", item: "Oxigenio liquido", categoria: "Suporte de Vida", estoque: 82, unidade: "%" },
-  { id: "SUP-214", item: "Combustivel ionico", categoria: "Propulsao", estoque: 65, unidade: "%" },
+  { id: "SUP-100", item: "Oxigênio líquido", categoria: "Suprimento de Vida", estoque: 82, unidade: "%" },
+  { id: "SUP-214", item: "Combustível iônico", categoria: "Propulsão", estoque: 65, unidade: "%" },
   { id: "SUP-332", item: "Kits medicos", categoria: "Saude", estoque: 44, unidade: "%" },
-  { id: "SUP-410", item: "Racao liofilizada", categoria: "Alimentos", estoque: 71, unidade: "%" },
+  { id: "SUP-410", item: "Ração liofilizada", categoria: "Alimentos", estoque: 71, unidade: "%" },
   { id: "SUP-512", item: "Filtros de poeira", categoria: "Manutencao", estoque: 37, unidade: "%" }
 ];

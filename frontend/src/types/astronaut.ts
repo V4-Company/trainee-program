@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 
 export interface Astronaut {
   id: number;
@@ -30,14 +30,12 @@ export interface UpdateAstronautInput {
   name?: string;
   role?: string;
   nationality?: string;
-  status?: "active" | "inactive";
 }
 
 export interface AstronautFormState {
   name: string;
   role: string;
   nationality: string;
-  status: "active" | "inactive";
 }
 
 export interface AstronautsPageProps {
@@ -50,9 +48,17 @@ export interface AstronautsPageProps {
   rows: Astronaut[];
   roles: string[];
   nationalities: string[];
-  onSubmit: (event: InputEvent) => Promise<void>;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onChangeForm: Dispatch<SetStateAction<AstronautFormState>>;
+  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onEdit: (item: Astronaut) => void;
   onDelete: (id: number) => Promise<void>;
   onCancelEdit: () => void;
+}
+
+export interface AstronautsListProps {
+  isLoading: boolean;
+  rows: Astronaut[];
+  onEdit: (item: Astronaut) => void;
+  onDelete: (id: number) => Promise<void>;
 }

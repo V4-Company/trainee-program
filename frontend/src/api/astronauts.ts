@@ -63,7 +63,7 @@ export async function updateAstronaut(id: number, input: UpdateAstronautInput): 
   return response.json() as Promise<Astronaut>;
 }
 
-export async function softDeleteAstronaut(id: number): Promise<void> {
+export async function deleteAstronaut(id: number): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/astronauts/${id}`, {
     method: "DELETE"
   });

@@ -1,141 +1,112 @@
-import { Badge } from "../../../components/ui/badge";
-import { Button } from "../../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
-import type { MissionsPageProps } from "../types";
-import { StatCard } from "../components/StatCard";
+import { useMemo, useState, type FormEvent } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchAstronauts } from "../../api/astronauts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
+import type { Astronaut } from "../../types/astronaut";
+import type { Mission, MissionFormState } from "../../types/missions";
+import { MissionForm } from "./components/MissionForm";
+import { MissionsList } from "./components/MissionsList";
 
-export function MissionsPage({
-  missions,
-  missionForm,
-  supplies,
-  astronauts,
-  missionError,
-  onChangeForm,
-  onAddSupply,
-  onRemoveSupply,
-  onCreateMission
-}: MissionsPageProps) {
+const INITIAL_MISSIONS: Mission[] = [
+  { id: "MS-01", nome: "Aurora Rubra", setor: "Vallis Marineris", status: "Ativa", astronautId: null, supplyId: null },
+  { id: "MS-02", nome: "Crimson Relay", setor: "Olympus Mons", status: "Planejamento", astronautId: null, supplyId: null },
+  { id: "MS-03", nome: "Helios Forge", setor: "Elysium Planitia", status: "Ativa", astronautId: null, supplyId: null }
+];
+
+const SUPPLY_OPTIONS = [
+  { id: "SUP-100", item: "Oxigenio liquido" },
+  { id: "SUP-214", item: "Combustivel ionico" },
+  { id: "SUP-332", item: "Kits medicos" },
+  { id: "SUP-410", item: "Racao liofilizada" },
+  { id: "SUP-512", item: "Filtros de poeira" }
+];
+
+const INITIAL_FORM: MissionFormState = {
+  nome: "",
+  setor: "",
+  astronautId: "",
+  supplyId: ""
+};
+
+export function MissionsPage() {
+  const [missions, setMissions] = useState<Mission[]>(INITIAL_MISSIONS);
+  const [missionForm, setMissionForm] = useState<MissionFormState>(INITIAL_FORM);
+  const [missionError, setMissionError] = useState("");
+
+  const astronautsQuery = useQuery({
+    queryKey: ["astronaut-options"],
+    queryFn: () => fetchAstronauts({ page: 1, limit: 50 })
+  });
+
+  const astronauts: Astronaut[] = astronautsQuery.data?.data ?? [];
+
+  const missionsWithLabels = useMemo(() => {
+    return missions.map((mission) => {
+      const astronautName = astronauts.find((item) => item.id === mission.astronautId)?.name ?? "Nao atribuido";
+      const supplyName = SUPPLY_OPTIONS.find((item) => item.id === mission.supplyId)?.item ?? "";
+      return { ...mission, astronautName, supplyName };
+    });
+  }, [astronauts, missions]);
+
+  function onFormChange(updater: (current: MissionFormState) => MissionFormState) {
+    setMissionForm((current) => updater(current));
+  }
+
+  function onCreateMission(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMissionError("");
+
+    if (!missionForm.nome.trim() || !missionForm.setor.trim() || !missionForm.astronautId || !missionForm.supplyId) {
+      setMissionError("Preencha nome, setor, astronauta e suprimento.");
+      return;
+    }
+
+    setMissions((current) => [
+      {
+        id: `MS-${Math.floor(Math.random() * 900 + 100)}`,
+        nome: missionForm.nome.trim(),
+        setor: missionForm.setor.trim(),
+        status: "Planejamento",
+        astronautId: Number(missionForm.astronautId),
+        supplyId: missionForm.supplyId
+      },
+      ...current
+    ]);
+    setMissionForm(INITIAL_FORM);
+  }
+
   return (
     <div className="space-y-5">
       <div className="grid gap-4 md:grid-cols-3">
-        <StatCard title="Missoes ativas" value={String(missions.filter((item) => item.status === "Ativa").length)} description="Operacao em tempo real" />
-        <StatCard title="Setores monitorados" value="12" description="Telemetria sincronizada" />
-        <StatCard title="Taxa de sucesso" value="94%" description="Ultimos 30 ciclos" />
+        <StatsCard title="Missoes ativas" value={String(missions.filter((item) => item.status === "Ativa").length)} description="Operacao em tempo real" />
+        <StatsCard title="Setores monitorados" value="12" description="Telemetria sincronizada" />
+        <StatsCard title="Taxa de sucesso" value="94%" description="Ultimos 30 ciclos" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Cadastrar missao (fake)</CardTitle>
-          <CardDescription>Selecione astronauta da API e adicione varios suprimentos.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={onCreateMission} className="grid gap-3 md:grid-cols-2">
-            <Input
-              placeholder="Nome da missao"
-              value={missionForm.nome}
-              onChange={(event) => onChangeForm((current) => ({ ...current, nome: event.target.value }))}
-            />
-            <Input
-              placeholder="Setor"
-              value={missionForm.setor}
-              onChange={(event) => onChangeForm((current) => ({ ...current, setor: event.target.value }))}
-            />
-            <select
-              value={missionForm.astronautId}
-              onChange={(event) => onChangeForm((current) => ({ ...current, astronautId: event.target.value }))}
-              className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-            >
-              <option value="">Selecione astronauta</option>
-              {astronauts.map((astronaut) => (
-                <option key={astronaut.id} value={astronaut.id}>
-                  {astronaut.name} - {astronaut.role}
-                </option>
-              ))}
-            </select>
+      <MissionForm
+        form={missionForm}
+        missionError={missionError || (astronautsQuery.error instanceof Error ? astronautsQuery.error.message : "")}
+        astronauts={astronauts}
+        supplies={SUPPLY_OPTIONS}
+        onFormChange={onFormChange}
+        onSubmit={onCreateMission}
+      />
 
-            <div className="flex gap-2">
-              <select
-                value={missionForm.selectedSupplyId}
-                onChange={(event) => onChangeForm((current) => ({ ...current, selectedSupplyId: event.target.value }))}
-                className="h-10 flex-1 rounded-md border border-input bg-secondary px-3 text-sm"
-              >
-                <option value="">Selecione suprimento</option>
-                {supplies.map((supply) => (
-                  <option key={supply.id} value={supply.id}>
-                    {supply.item}
-                  </option>
-                ))}
-              </select>
-              <Button type="button" variant="secondary" onClick={onAddSupply}>
-                Adicionar
-              </Button>
-            </div>
-
-            <div className="md:col-span-2 flex flex-wrap gap-2">
-              {missionForm.supplyIds.map((id) => {
-                const label = supplies.find((item) => item.id === id)?.item ?? id;
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => onRemoveSupply(id)}
-                    className="rounded-full border border-border bg-secondary px-3 py-1 text-xs hover:bg-red-950/50"
-                    title="Remover suprimento"
-                  >
-                    {label} x
-                  </button>
-                );
-              })}
-            </div>
-
-            {missionError ? <p className="md:col-span-2 text-sm text-red-300">{missionError}</p> : null}
-
-            <div className="md:col-span-2">
-              <Button type="submit">Criar missao</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Mapa de missoes</CardTitle>
-          <CardDescription>Visao consolidada das expedicoes marcianas.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Missao</TableHead>
-                <TableHead>Setor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Progresso</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {missions.map((mission) => (
-                <TableRow key={mission.id}>
-                  <TableCell className="font-medium text-red-300">{mission.id}</TableCell>
-                  <TableCell>{mission.nome}</TableCell>
-                  <TableCell>{mission.setor}</TableCell>
-                  <TableCell>
-                    <Badge variant={mission.status === "Ativa" ? "default" : "secondary"}>{mission.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">{mission.astronautName}</p>
-                      <p className="text-xs">{mission.supplyNames.join(", ") || "Sem suprimentos"}</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <MissionsList missions={missionsWithLabels} />
     </div>
+  );
+}
+
+function StatsCard({ title, value, description }: { title: string; value: string; description: string }) {
+  return (
+    <Card className="bg-card/95">
+      <CardHeader className="pb-2">
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-3xl text-red-300">{value}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
