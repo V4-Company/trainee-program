@@ -53,29 +53,3 @@ export async function createAstronaut(data: CreateAstronautData): Promise<Astron
 
   return rows[0];
 }
-
-export async function updateAstronaut(id: number, data: UpdateAstronautData): Promise<AstronautRow | null> {
-  const entries = Object.entries(data).filter(([, v]) => v !== undefined);
-  entries.push(["updated_at", new Date().toISOString()]);
-
-  const setClauses = entries.map(([col], i) => `${col} = $${i + 1}`).join(", ");
-  const values = entries.map(([, v]) => v);
-
-  const { rows } = await pool.query<AstronautRow>(
-    `UPDATE astronauts SET ${setClauses} WHERE id = $${values.length + 1} AND deleted_at IS NULL RETURNING *`,
-    [...values, id]
-  );
-
-  return rows[0] ?? null;
-}
-
-export async function softDeleteAstronaut(id: number): Promise<boolean> {
-  const now = new Date();
-
-  const { rowCount } = await pool.query(
-    `UPDATE astronauts SET deleted_at = $1, updated_at = $1 WHERE id = $2 AND deleted_at IS NULL`,
-    [now, id]
-  );
-
-  return (rowCount ?? 0) > 0;
-}
