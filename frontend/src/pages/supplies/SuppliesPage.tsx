@@ -1,5 +1,7 @@
-import { type FormEvent, useState } from "react";
-import { supplyCategories, supplies as initialSupplies } from "../../data/fake-data";
+import { type SubmitEventHandler, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createSupply, deleteSupply, fetchSupplies } from "../../api/supplies";
+import { supplyCategories } from "../../data/fake-data";
 import type { Supply, SupplyFormState } from "../../types/supplies";
 import { SuppliesForm } from "./components/SuppliesForm";
 import { SuppliesList } from "./components/SuppliesList";
@@ -11,19 +13,30 @@ const INITIAL_FORM: SupplyFormState = {
 };
 
 export function SuppliesPage() {
-  const [rows, setRows] = useState<Supply[]>(initialSupplies);
+  const queryClient = useQueryClient();
   const [form, setForm] = useState<SupplyFormState>(INITIAL_FORM);
   const [supplyError, setSupplyError] = useState("");
 
-  async function fakeCreateSupply() {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-  }
+  const suppliesQuery = useQuery({
+    queryKey: ["supplies"],
+    queryFn: fetchSupplies
+  });
 
-  async function fakeDeleteSupply() {
-    await new Promise((resolve) => window.setTimeout(resolve, 250));
-  }
+  const createSupplyMutation = useMutation({
+    mutationFn: createSupply,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["supplies"] });
+    }
+  });
 
-  async function onCreateSupply(event: FormEvent<HTMLFormElement>) {
+  const deleteSupplyMutation = useMutation({
+    mutationFn: deleteSupply,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["supplies"] });
+    }
+  });
+
+  const onCreateSupply: SubmitEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
     setSupplyError("");
     const estoque = Number(form.estoque);
@@ -33,30 +46,35 @@ export function SuppliesPage() {
       return;
     }
 
-    await fakeCreateSupply();
-    setRows((current) => [
-      {
-        id: `SUP-${Math.floor(Math.random() * 900 + 100)}`,
+    try {
+      await createSupplyMutation.mutateAsync({
         item: form.item.trim(),
         categoria: form.categoria.trim(),
-        estoque: Math.max(0, Math.min(100, estoque)),
-        unidade: "%"
-      },
-      ...current
-    ]);
-    setForm(INITIAL_FORM);
-  }
+        estoque
+      });
+      setForm(INITIAL_FORM);
+    } catch (error) {
+      setSupplyError(error instanceof Error ? error.message : "Falha ao adicionar suprimento.");
+    }
+  };
 
   async function onDeleteSupply(id: string) {
-    await fakeDeleteSupply();
-    setRows((current) => current.filter((item) => item.id !== id));
+    setSupplyError("");
+    try {
+      await deleteSupplyMutation.mutateAsync(id);
+    } catch (error) {
+      setSupplyError(error instanceof Error ? error.message : "Falha ao remover suprimento.");
+    }
   }
+
+  const rows: Supply[] = suppliesQuery.data ?? [];
+  const resolvedSupplyError = supplyError || (suppliesQuery.error instanceof Error ? suppliesQuery.error.message : "");
 
   return (
     <div className="space-y-5">
       <SuppliesForm
         form={form}
-        supplyError={supplyError}
+        supplyError={resolvedSupplyError}
         categories={supplyCategories}
         onChangeForm={setForm}
         onCreateSupply={onCreateSupply}

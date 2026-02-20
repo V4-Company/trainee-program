@@ -1,11 +1,11 @@
-import type { FormEvent } from "react";
+import type { SubmitEventHandler } from "react";
 import { Search } from "lucide-react";
 import { Input } from "../../../components/ui/input";
 
 interface AstronautSearchProps {
   search: string;
   onSearchChange: (value: string) => void;
-  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSearchSubmit: SubmitEventHandler<HTMLFormElement>;
 }
 
 export function AstronautSearch({ search, onSearchChange, onSearchSubmit }: AstronautSearchProps) {

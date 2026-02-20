@@ -74,7 +74,7 @@ export function AppLayout() {
         <main className="flex-1 px-8 py-8">
           <div className="mb-6 flex items-end justify-between gap-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Interface futuristica</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">MARS MISSION CONTROL</p>
               <h2 className="mt-1 text-3xl font-semibold">{title}</h2>
             </div>
           </div>

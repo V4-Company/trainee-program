@@ -1,4 +1,4 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { Dispatch, SetStateAction, SubmitEventHandler } from "react";
 import { Button } from "../../../components/ui/button";
 import { CardContent } from "../../../components/ui/card";
 import { Input } from "../../../components/ui/input";
@@ -9,7 +9,7 @@ interface AstronautFormProps {
   roles: string[];
   nationalities: string[];
   isEditing: boolean;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onSubmit: SubmitEventHandler<HTMLFormElement>;
   onChangeForm: Dispatch<SetStateAction<AstronautFormState>>;
   onCancelEdit: () => void;
 }
@@ -53,16 +53,8 @@ export function AstronautForm({
             </option>
           ))}
         </select>
-        <select
-          value={form.status}
-          onChange={(event) => onChangeForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))}
-          className="h-10 rounded-md border border-input bg-secondary px-3 text-sm"
-        >
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
-        </select>
 
-        <div className="md:col-span-4 flex gap-2">
+        <div className="flex gap-2 md:col-span-4">
           <Button type="submit">{isEditing ? "Atualizar astronauta" : "Adicionar astronauta"}</Button>
           {isEditing ? (
             <Button type="button" variant="secondary" onClick={onCancelEdit}>
@@ -71,7 +63,6 @@ export function AstronautForm({
           ) : null}
         </div>
       </form>
-
     </CardContent>
   );
 }

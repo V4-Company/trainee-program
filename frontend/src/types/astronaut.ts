@@ -1,4 +1,4 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { Dispatch, SetStateAction, SubmitEventHandler } from "react";
 
 export interface Astronaut {
   id: number;
@@ -48,9 +48,9 @@ export interface AstronautsPageProps {
   rows: Astronaut[];
   roles: string[];
   nationalities: string[];
-  onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onSubmit: SubmitEventHandler<HTMLFormElement>;
   onChangeForm: Dispatch<SetStateAction<AstronautFormState>>;
-  onSearchSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSearchSubmit: SubmitEventHandler<HTMLFormElement>;
   onEdit: (item: Astronaut) => void;
   onDelete: (id: number) => Promise<void>;
   onCancelEdit: () => void;

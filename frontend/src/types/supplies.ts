@@ -1,4 +1,4 @@
-import type { Dispatch, FormEvent, SetStateAction } from "react";
+import type { Dispatch, SetStateAction, SubmitEventHandler } from "react";
 
 export interface SupplyFormState {
     item: string;
@@ -20,7 +20,7 @@ export interface SuppliesPageProps {
   supplyError: string;
   categories: string[];
   onChangeForm: Dispatch<SetStateAction<SupplyFormState>>;
-  onCreateSupply: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onCreateSupply: SubmitEventHandler<HTMLFormElement>;
 }
 
 export interface SuppliesListProps {

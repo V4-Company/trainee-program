@@ -15,19 +15,14 @@ export function MissionForm({
     <Card>
       <CardHeader>
         <CardTitle className="text-xl">Cadastrar missao (fake)</CardTitle>
-        <CardDescription>Selecione astronauta da API e adicione varios suprimentos.</CardDescription>
+        <CardDescription>Selecione nome, astronauta e suprimento.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2">
+        <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-3">
           <Input
             placeholder="Nome da missao"
             value={form.nome}
             onChange={(event) => onFormChange((current) => ({ ...current, nome: event.target.value }))}
-          />
-          <Input
-            placeholder="Setor"
-            value={form.setor}
-            onChange={(event) => onFormChange((current) => ({ ...current, setor: event.target.value }))}
           />
           <select
             value={form.astronautId}
@@ -55,9 +50,9 @@ export function MissionForm({
             ))}
           </select>
 
-          {missionError ? <p className="md:col-span-2 text-sm text-red-300">{missionError}</p> : null}
+          {missionError ? <p className="md:col-span-3 text-sm text-red-300">{missionError}</p> : null}
 
-          <div className="md:col-span-2">
+          <div className="md:col-span-3">
             <Button type="submit">Criar missao</Button>
           </div>
         </form>
